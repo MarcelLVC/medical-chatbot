@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="avatar">
+                <img src="{{ url_for('static', filename='doctor.png') }}" alt="Doctor Icon">
+            </div>
+            <div class="header-info">
+                <h3>Medical Chatbot</h3>
+                <small>Online</small>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot-message">
+                <div class="avatar">
+                   <img src="{{ url_for('static', filename='doctor.png') }}" alt="Doctor Icon">
+                </div>
+                <div class="message-content">
+                    <div class="text">
+                        Hello! I'm your virtual health assistant. How can I help you today?
+                    </div>
+                    <span class="message-time">Just now</span>
+                </div>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off">
+            <button id="send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+     <!-- js for the fuctional -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const botAvatarSrc = "{{ url_for('static', filename='doctor.png') }}";
+
+            function addMessage(text, sender) {
+                const messageContainer = document.createElement('div');
+                messageContainer.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.classList.add('avatar');
+                
+                if (sender === 'bot') {
+                    avatarDiv.innerHTML = `<img src="${botAvatarSrc}" alt="Doctor Icon">`;
+                } else { 
+                    avatarDiv.innerHTML = '<i class="fas fa-user"></i>';
+                }
+
+                const messageContentDiv = document.createElement('div');
+                messageContentDiv.classList.add('message-content');
+
+                const textDiv = document.createElement('div');
+                textDiv.classList.add('text');
+                textDiv.innerHTML = text;
+
+                const timeSpan = document.createElement('span');
+                timeSpan.classList.add('message-time');
+                const now = new Date();
+                timeSpan.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                messageContentDiv.appendChild(textDiv);
+                messageContentDiv.appendChild(timeSpan);
+                
+                if (sender === 'user') {
+                    messageContainer.appendChild(messageContentDiv);
+                    messageContainer.appendChild(avatarDiv);
+                } else {
+                    messageContainer.appendChild(avatarDiv);
+                    messageContainer.appendChild(messageContentDiv);
+                }
+
+                chatMessages.appendChild(messageContainer);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            async function sendMessage() {
+                const messageText = userInput.value.trim();
+                if (messageText === '') return;
+
+                addMessage(messageText, 'user');
+                userInput.value = '';
+
+                addMessage('<span class="thinking-indicator"><span>.</span><span>.</span><span>.</span></span>', 'bot');
+                const botMessageContainer = chatMessages.lastElementChild;
+                const botTextDiv = botMessageContainer.querySelector('.text');
+
+                try {
+                    const formData = new FormData();
+                    formData.append('message', messageText);
+
+                    const response = await fetch('/get', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                    const botResponse = await response.text();
+                    botTextDiv.innerHTML = botResponse.replace(/\n/g, '<br>');
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    botTextDiv.textContent = 'Sorry, I am having trouble connecting. Please try again later.';
+                } finally {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
+
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault(); 
+                    sendMessage();
+                }
+            });
+
+            const initialTime = chatMessages.querySelector('.message-time');
+            if (initialTime) {
+                 const now = new Date();
+                 initialTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+        });
+    </script>
+</body>
+</html>
+
