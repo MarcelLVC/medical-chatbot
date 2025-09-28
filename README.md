@@ -1,5 +1,5 @@
 # medical-chatbot
-
+Creating medical chatbot using Gemini-2.5-flash for the LLM
 ### STEP 01- Create venv
 
 ### STEP 02- install the requirements
